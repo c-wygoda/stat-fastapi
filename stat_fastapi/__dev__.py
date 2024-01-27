@@ -12,6 +12,7 @@ except ImportError:
     exit(1)
 
 from stat_fastapi.api import StatApiRouter
+from stat_fastapi.backend.mock import StatMockBackend
 
 
 class DevSettings(BaseSettings):
@@ -20,7 +21,7 @@ class DevSettings(BaseSettings):
 
 
 app = FastAPI(debug=True)
-app.include_router(StatApiRouter().router)
+app.include_router(StatApiRouter(backend=StatMockBackend()).router)
 
 
 if __name__ == "__main__":

@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 from pytest import fixture
 
 from stat_fastapi.models.root import RootResponse
-from stat_fastapi.models.shared import Link
 
+from .utils import find_link
 from .warnings import StatSpecWarning
 
 
@@ -18,10 +18,6 @@ def data(stat_client: TestClient):
     assert res.headers["Content-Type"] == "application/json"
 
     yield RootResponse(**res.json())
-
-
-def find_link(links: list[Link], rel: str) -> Link | None:
-    return next((link for link in links if link.rel == rel), None)
 
 
 def test_root_self_link(data: RootResponse, url_for):
