@@ -1,0 +1,50 @@
+[tool.poetry]
+name = "stat-fastapi"
+version = "0.0.0"
+description = "Spatio Temporal Asset Tasking with FastAPI"
+authors = ["Christian Wygoda <christian.wygoda@wygoda.net>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.109.0"
+pydantic = "^2.5.3"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.4"
+ruff = "^0.1.14"
+uvicorn = "^0.27.0"
+pydantic-settings = "^2.1.0"
+httpx = "^0.26.0"
+pytest-coverage = "^0.0"
+
+[tool.ruff]
+exclude = [".github"]
+extend-ignore = ["E501", "UP007", "UP034"]
+line-length = 88
+select = [
+    "C9",
+    "E",
+    "F",
+    "I",
+    "W",
+    "UP"
+]
+
+[tool.ruff.mccabe]
+max-complexity = 8
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+sort = "Cover"
+omit = [
+    "**/*_test.py",
+    "**/conftest.py",
+    "stat_fastapi/__dev__.py",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
