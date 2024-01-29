@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, Request, status
 
+from stat_fastapi.backend.exceptions import ConstraintsException
 from stat_fastapi.backend.protocol import StatApiBackend
+from stat_fastapi.models.opportunity import OpportunityCollection, OpportunitySearch
 from stat_fastapi.models.product import Product, ProductsCollection
 from stat_fastapi.models.root import RootResponse
 from stat_fastapi.models.shared import HTTPException as HTTPExceptionModel
@@ -58,6 +60,14 @@ class StatApiRouter:
             responses={status.HTTP_404_NOT_FOUND: {"model": HTTPExceptionModel}},
         )
 
+        self.router.add_api_route(
+            "/opportunities",
+            self.search_opportunities,
+            methods=["POST"],
+            name=f"{self.NAME_PREFIX}:search-opportunities",
+            tags=["Opportunities"],
+        )
+
     def root(self, request: Request) -> RootResponse:
         return RootResponse(
             links=[
@@ -105,3 +115,15 @@ class StatApiRouter:
             )
         )
         return product
+
+    async def search_opportunities(
+        self, search: OpportunitySearch, request: Request
+    ) -> OpportunityCollection:
+        """
+        Explore the opportunities available for a particular set of constraints
+        """
+        try:
+            opportunities = await self.backend.search_opportunities(search, request)
+        except ConstraintsException as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.detail)
+        return OpportunityCollection(features=opportunities)
