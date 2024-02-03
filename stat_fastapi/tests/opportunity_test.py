@@ -6,6 +6,8 @@ from pytest import fixture
 
 from stat_fastapi.models.opportunity import OpportunityCollection
 
+from .utils import TYPE_GEOJSON
+
 
 @fixture(scope="module")
 def search_opportunities_response(stat_client: TestClient, product_id: str):
@@ -32,7 +34,7 @@ def search_opportunities_response(stat_client: TestClient, product_id: str):
         },
     )
     assert res.status_code == status.HTTP_200_OK
-    assert res.headers["Content-Type"] == "application/json"
+    assert res.headers["Content-Type"] == TYPE_GEOJSON
     yield OpportunityCollection(**res.json())
 
 

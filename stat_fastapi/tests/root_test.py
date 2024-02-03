@@ -6,7 +6,7 @@ from pytest import fixture
 
 from stat_fastapi.models.root import RootResponse
 
-from .utils import find_link
+from .utils import TYPE_JSON, find_link
 from .warnings import StatSpecWarning
 
 
@@ -15,7 +15,7 @@ def data(stat_client: TestClient):
     res = stat_client.get("/")
 
     assert res.status_code == status.HTTP_200_OK
-    assert res.headers["Content-Type"] == "application/json"
+    assert res.headers["Content-Type"] == TYPE_JSON
 
     yield RootResponse(**res.json())
 
@@ -25,7 +25,7 @@ def test_root_self_link(data: RootResponse, url_for):
     if link is None:
         warn(StatSpecWarning("GET / Link[rel=self] should exist"))
     else:
-        assert link.type == "application/json"
+        assert link.type == TYPE_JSON
         assert link.href == url_for("/")
 
 
@@ -35,7 +35,7 @@ def test_root_service_description_link(data: RootResponse, base_url: str):
         warn(StatSpecWarning("GET / Link[rel=service-description] should exist"))
 
     else:
-        assert link.type == "application/json"
+        assert link.type == TYPE_JSON
         assert str(link.href) == f"{base_url.rstrip('/')}/openapi.json"
 
 
