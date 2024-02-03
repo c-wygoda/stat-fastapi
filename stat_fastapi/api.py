@@ -2,9 +2,10 @@ from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
-from stat_fastapi.backend.exceptions import ConstraintsException
+from stat_fastapi.backend.exceptions import ConstraintsException, NotFoundException
 from stat_fastapi.backend.protocol import StatApiBackend
 from stat_fastapi.models.opportunity import OpportunityCollection, OpportunitySearch
+from stat_fastapi.models.order import Order, OrderPayload
 from stat_fastapi.models.product import Product, ProductsCollection
 from stat_fastapi.models.root import RootResponse
 from stat_fastapi.models.shared import HTTPException as HTTPExceptionModel
@@ -73,6 +74,22 @@ class StatApiRouter:
             response_model=OpportunityCollection,
         )
 
+        self.router.add_api_route(
+            "/orders",
+            self.create_order,
+            methods=["POST"],
+            name=f"{self.NAME_PREFIX}:create-order",
+            tags=["Orders"],
+            response_model=Order,
+        )
+        self.router.add_api_route(
+            "/orders/{order_id}",
+            self.get_order,
+            methods=["GET"],
+            name=f"{self.NAME_PREFIX}:get-order",
+            tags=["Orders"],
+        )
+
     def root(self, request: Request) -> RootResponse:
         return RootResponse(
             links=[
@@ -135,3 +152,37 @@ class StatApiRouter:
             jsonable_encoder(OpportunityCollection(features=opportunities)),
             media_type=self.TYPE_GEOJSON,
         )
+
+    async def create_order(
+        self, payload: OrderPayload, request: Request
+    ) -> JSONResponse:
+        """
+        Create a new order.
+        """
+        try:
+            order = await self.backend.create_order(payload, request)
+        except ConstraintsException as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.detail)
+
+        location = str(
+            request.url_for(f"{self.NAME_PREFIX}:get-order", order_id=order.id)
+        )
+        order.links.append(Link(href=location, rel="self", type=self.TYPE_GEOJSON))
+        return JSONResponse(
+            jsonable_encoder(order, exclude_unset=True),
+            status.HTTP_201_CREATED,
+            {"Location": location},
+        )
+
+    async def get_order(self, order_id: str, request: Request) -> Order:
+        """
+        Get details for order with `order_id`.
+        """
+        try:
+            order = await self.backend.get_order(order_id, request)
+        except NotFoundException as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="not found") from exc
+        order.links.append(
+            Link(href=str(request.url), rel="self", type=self.TYPE_GEOJSON)
+        )
+        return order

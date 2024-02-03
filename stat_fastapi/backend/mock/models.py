@@ -7,6 +7,7 @@ from stat_fastapi.models.opportunity import (
     OpportunitySearch,
     OpportunitySearchProperties,
 )
+from stat_fastapi.models.order import OrderPayload, OrderPayloadProperties
 
 
 class Satellite(BaseModel):
@@ -43,21 +44,40 @@ class Pass(Feature[Point, PassProperties]):
     pass
 
 
+OFF_NADIR_RANGE = (0.0, 45.0)
+OFF_NADIR_DEFAULT_RANGE = (0.0, 30.0)
+OFF_NADIR_MIN_SPREAD = 5.0
+
+
 class OffNadirRange(BaseModel):
-    minimum: float = Field(ge=0.0, le=45)
-    maximum: float = Field(ge=0.0, le=45)
+    minimum: float = Field(ge=OFF_NADIR_RANGE[0], le=OFF_NADIR_RANGE[1])
+    maximum: float = Field(ge=OFF_NADIR_RANGE[0], le=OFF_NADIR_RANGE[1])
 
     @model_validator(mode="after")
     def validate(self) -> "OffNadirRange":
         diff = self.maximum - self.minimum
-        if diff < 5.0:
-            raise ValueError("range must be at least 5°")
+        if diff < OFF_NADIR_MIN_SPREAD:
+            raise ValueError(f"range must be at least {OFF_NADIR_MIN_SPREAD}°")
         return self
 
 
-class Constraints(OpportunitySearchProperties):
-    off_nadir: OffNadirRange = OffNadirRange(minimum=0.0, maximum=30.0)
+class OpportunityConstraints(OpportunitySearchProperties):
+    off_nadir: OffNadirRange = OffNadirRange(
+        minimum=OFF_NADIR_DEFAULT_RANGE[0],
+        maximum=OFF_NADIR_DEFAULT_RANGE[1],
+    )
 
 
 class ValidatedOpportunitySearch(OpportunitySearch):
-    properties: Constraints
+    properties: OpportunityConstraints
+
+
+class ValidatedOrderPayloadProperties(OrderPayloadProperties):
+    off_nadir: OffNadirRange = OffNadirRange(
+        minimum=OFF_NADIR_DEFAULT_RANGE[0],
+        maximum=OFF_NADIR_DEFAULT_RANGE[1],
+    )
+
+
+class ValidatedOrderPayload(OrderPayload):
+    properties: ValidatedOrderPayloadProperties
