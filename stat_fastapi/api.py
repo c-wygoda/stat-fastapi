@@ -126,9 +126,12 @@ class StatApiRouter:
         return ProductsCollection(products=products)
 
     async def product(self, product_id: str, request: Request) -> Product:
-        product = await self.backend.product(product_id, request)
-        if product is None:
-            raise StatApiException(status.HTTP_404_NOT_FOUND, "product not found")
+        try:
+            product = await self.backend.product(product_id, request)
+        except NotFoundException as exc:
+            raise StatApiException(
+                status.HTTP_404_NOT_FOUND, "product not found"
+            ) from exc
         product.links.append(
             Link(
                 href=str(request.url_for("stat:get-product", product_id=product.id)),

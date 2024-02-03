@@ -15,8 +15,10 @@ class StatApiBackend(Protocol):
 
     async def product(self, product_id: str, request: Request) -> Product | None:
         """
-        Return the product identified by `product_id` or `None` if it isn't
-        supported.
+        Return the product identified by `product_id`.
+
+        Backends must raise `stat_fastapi.backend.exceptions.NotFoundException`
+        if not found or access denied.
         """
 
     async def search_opportunities(

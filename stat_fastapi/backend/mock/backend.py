@@ -65,14 +65,16 @@ class StatMockBackend:
         Return the product identified by `product_id` or `None` if it isn't
         supported.
         """
-        return next(
-            (
-                product.model_copy(deep=True)
-                for product in PRODUCTS
-                if product.id == product_id
-            ),
-            None,
-        )
+        try:
+            return next(
+                (
+                    product.model_copy(deep=True)
+                    for product in PRODUCTS
+                    if product.id == product_id
+                ),
+            )
+        except StopIteration as exc:
+            raise NotFoundException() from exc
 
     async def search_opportunities(
         self, search: OpportunitySearch, request: Request
