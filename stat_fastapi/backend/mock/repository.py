@@ -4,12 +4,12 @@ from uuid import uuid4
 
 from geoalchemy2 import Geometry, load_spatialite
 from shapely import from_geojson, from_wkb, to_wkt
-from sqlalchemy import Column, DateTime, Float, String, create_engine, func
+from sqlalchemy import Column, DateTime, Enum, Float, String, create_engine, func
 from sqlalchemy.event import listen
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from stat_fastapi.models.order import Order, OrderProperties
+from stat_fastapi.models.order import Order, OrderProperties, OrderStatus
 
 from .models import OffNadirRange, ValidatedOrderPayload
 
@@ -27,6 +27,7 @@ class OrderEntity(Base):
 
     id = Column(String(36), primary_key=True)
     product_id = Column(String, nullable=False)
+    status = Column(Enum(OrderStatus), nullable=False)
     geom = Column(Geometry(srid=4326), nullable=False)
     dt_start = Column(DateTime(True), nullable=False)
     dt_end = Column(DateTime(True), nullable=False)
@@ -44,6 +45,7 @@ class OrderEntity(Base):
         return OrderEntity(
             id=order_id,
             product_id=payload.product_id,
+            status=OrderStatus.pending,
             geom=f"SRID=4326;{to_wkt(geom)}",
             dt_start=payload.properties.datetime[0],
             dt_end=payload.properties.datetime[1],
@@ -56,9 +58,10 @@ class OrderEntity(Base):
         return Order(
             geometry=from_wkb(self.geom.desc),
             properties=OrderProperties(
+                status=self.status,
                 datetime=(
                     self.dt_start.replace(tzinfo=UTC),
-                    self.dt_start.replace(tzinfo=UTC),
+                    self.dt_end.replace(tzinfo=UTC),
                 ),
                 off_nadir=OffNadirRange(
                     minimum=self.off_nadir_min,

@@ -175,6 +175,7 @@ class StatApiRouter:
             jsonable_encoder(order, exclude_unset=True),
             status.HTTP_201_CREATED,
             {"Location": location},
+            media_type=self.TYPE_GEOJSON,
         )
 
     async def get_order(self, order_id: str, request: Request) -> Order:
@@ -188,4 +189,8 @@ class StatApiRouter:
         order.links.append(
             Link(href=str(request.url), rel="self", type=self.TYPE_GEOJSON)
         )
-        return order
+        return JSONResponse(
+            jsonable_encoder(order, exclude_unset=True),
+            status.HTTP_200_OK,
+            media_type=self.TYPE_GEOJSON,
+        )

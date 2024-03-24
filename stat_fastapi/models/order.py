@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Literal
 
 from geojson_pydantic import Feature
@@ -18,8 +19,17 @@ class OrderPayload(Feature[Geometry, OrderPayloadProperties]):
     product_id: str
 
 
+class OrderStatus(str, Enum):
+    pending = "pending"
+    processing = "processing"
+    finished = "finished"
+    failed = "failed"
+    expired = "expired"
+
+
 class OrderProperties(BaseModel):
     datetime: DatetimeInterval
+    status: OrderStatus
     created_at: AwareDatetime
     updated_at: AwareDatetime
 
