@@ -14,6 +14,7 @@ from .models import (
     Pass,
     ValidatedOpportunitySearch,
     ValidatedOrderPayload,
+    ValidatedOrderPayloadProperties,
 )
 from .repository import Repository
 from .satellite import EarthObservationSatelliteModel
@@ -36,8 +37,8 @@ PRODUCTS = [
                 url="http://acme.example.com",
             )
         ],
-        # TODO: $defs paths are off
-        constraints=OpportunityConstraints.model_json_schema(),
+        constraints=OpportunityConstraints,
+        properties=ValidatedOrderPayloadProperties,
         links=[],
     )
 ]

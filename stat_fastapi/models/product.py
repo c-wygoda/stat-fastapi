@@ -1,7 +1,7 @@
 from enum import Enum
-from typing import Any, Literal, Mapping, Optional
+from typing import Literal, Optional, Type
 
-from pydantic import AnyHttpUrl, AnyUrl, BaseModel
+from pydantic import AnyHttpUrl, AnyUrl, BaseModel, field_serializer, field_validator
 
 from stat_fastapi.consts import STAT_VERSION
 
@@ -33,8 +33,20 @@ class Product(BaseModel):
     license: str
     providers: list[Provider]
     links: list[Link]
-    constraints: Optional[Mapping[str, Any]] = None  # TODO: Don't cheat
-    parameters: Optional[Mapping[str, Any]] = None  # TODO: Don't cheat
+    constraints: Optional[Type[BaseModel]] = None
+    parameters: Optional[Type[BaseModel]] = None
+
+    @field_serializer("constraints", "parameters")
+    def serialize_model_schemas(self, attribute: Type[BaseModel] | None):
+        # TODO: $defs paths are off in resulting JSON
+        if attribute is not None:
+            return attribute.model_json_schema()
+
+    @field_validator("constraints", "parameters")
+    @classmethod
+    def unset_model_schemas(cls, _) -> None:
+        # really only for tests, but ignore the JSON schema fields
+        return None
 
 
 class ProductsCollection(BaseModel):
