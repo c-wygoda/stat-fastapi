@@ -1,4 +1,5 @@
 from fastapi import Request
+from geojson_pydantic import Point
 from pydantic import ValidationError
 
 from stat_fastapi.backend.exceptions import ConstraintsException, NotFoundException
@@ -13,15 +14,13 @@ from .models import (
     OpportunityConstraints,
     Pass,
     ValidatedOpportunitySearch,
-    ValidatedOrderPayload,
-    ValidatedOrderPayloadProperties,
 )
 from .repository import Repository
 from .satellite import EarthObservationSatelliteModel
 from .settings import Settings
 
 PRODUCTS = [
-    Product(
+    Product[Point, OpportunityConstraints](
         id="mock:standard",
         description="Mock backend's standard product",
         license="CC0-1.0",
@@ -37,8 +36,6 @@ PRODUCTS = [
                 url="http://acme.example.com",
             )
         ],
-        constraints=OpportunityConstraints,
-        properties=ValidatedOrderPayloadProperties,
         links=[],
     )
 ]
@@ -122,7 +119,16 @@ class StatMockBackend:
         Create a new order.
         """
         try:
-            validated = ValidatedOrderPayload(**payload.model_dump(by_alias=True))
+            ProductOrderPayload = next(
+                (
+                    product.OrderPayload
+                    for product in PRODUCTS
+                    if product.id == payload.product_id
+                )
+            )
+            validated = ProductOrderPayload(**payload.model_dump(by_alias=True))
+        except StopIteration:
+            raise ConstraintsException({"product_id": "invalid product_id"})
         except ValidationError as exc:
             raise ConstraintsException(exc.errors()) from exc
 

@@ -1,7 +1,18 @@
 from enum import Enum
-from typing import Literal, Optional, Type
+from typing import Generic, Literal, Optional, TypeVar
 
-from pydantic import AnyHttpUrl, AnyUrl, BaseModel, field_serializer, field_validator
+from geojson_pydantic import Feature
+from geojson_pydantic.geometries import Geometry
+from pydantic import (
+    AnyHttpUrl,
+    AnyUrl,
+    BaseModel,
+    computed_field,
+)
+
+# shouldn't use this, but I'm lazy
+# see https://github.com/pydantic/pydantic/issues/4908#issuecomment-1538769435
+from pydantic._internal._generics import get_args
 
 from stat_fastapi.consts import STAT_VERSION
 
@@ -22,7 +33,11 @@ class Provider(BaseModel):
     url: AnyHttpUrl
 
 
-class Product(BaseModel):
+Constraints = TypeVar("Constraints", bound=None | BaseModel)
+Geom = TypeVar("Geom", bound=Geometry)
+
+
+class Product(BaseModel, Generic[Geom, Constraints]):
     type: Literal["Product"] = "Product"
     stat_version: str = STAT_VERSION
     stat_extensions: Optional[list[AnyUrl]] = None
@@ -33,20 +48,26 @@ class Product(BaseModel):
     license: str
     providers: list[Provider]
     links: list[Link]
-    constraints: Optional[Type[BaseModel]] = None
-    parameters: Optional[Type[BaseModel]] = None
 
-    @field_serializer("constraints", "parameters")
-    def serialize_model_schemas(self, attribute: Type[BaseModel] | None):
-        # TODO: $defs paths are off in resulting JSON
-        if attribute is not None:
-            return attribute.model_json_schema()
+    @computed_field
+    @property
+    def constraints(self) -> dict | None:
+        constraints: BaseModel | None = get_args(self)[0]
+        if constraints is not None:
+            return constraints.model_json_schema()
 
-    @field_validator("constraints", "parameters")
-    @classmethod
-    def unset_model_schemas(cls, _) -> None:
-        # really only for tests, but ignore the JSON schema fields
-        return None
+    # TODO: parameters. merging models ain't fun
+
+    @property
+    def OrderPayload(self):
+        args = get_args(self)
+        geom: Geometry = args[0]
+        constraints: BaseModel | None = args[1]
+
+        class OrderPayload(Feature[geom, constraints]):
+            product_id: str = self.id
+
+        return OrderPayload
 
 
 class ProductsCollection(BaseModel):
